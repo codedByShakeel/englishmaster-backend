@@ -16,7 +16,7 @@ app.post("/ask-ai", async (req, res) => {
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
-        model: "mistralai/mistral-7b-instruct",
+        model: "mistralai/mistral-7b-instruct:free",
         messages: [
           {
             role: "user",
@@ -27,17 +27,25 @@ app.post("/ask-ai", async (req, res) => {
       {
         headers: {
           Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "HTTP-Referer": "https://englishmaster.com",
+          "X-Title": "English Master",
           "Content-Type": "application/json",
         },
       }
     );
 
+    console.log(response.data);
+
     res.json(response.data);
+
   } catch (error) {
-    console.log(error.response?.data || error.message);
+
+    console.log(
+      error.response?.data || error.message
+    );
 
     res.status(500).json({
-      error: "Something went wrong",
+      error: error.response?.data || error.message,
     });
   }
 });
