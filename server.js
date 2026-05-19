@@ -10,32 +10,83 @@ app.use(cors());
 app.use(express.json());
 
 app.post("/ask-ai", async (req, res) => {
+
   try {
 
     const prompt = req.body.prompt;
 
     if (!prompt) {
+
       return res.status(400).json({
         error: "Prompt is required",
       });
     }
 
-    const response = await axios.post(
-      "https://openrouter.ai/api/v1/chat/completions",
+    /// Detect Pashto Translation Requests
+    const isPashtoRequest =
 
-      {
-        model: "openai/gpt-3.5-turbo",
+      prompt.toLowerCase().includes("pashto") ||
+      prompt.toLowerCase().includes("pashto meaning") ||
+      prompt.toLowerCase().includes("translate") ||
+      prompt.toLowerCase().includes("meaning") ||
+      prompt.includes("پښتو") ||
+      prompt.includes("معنی") ||
+      prompt.includes("ژباړه");
 
-        temperature: 0.7,
+    /// SYSTEM PROMPT
+    let systemPrompt = "";
 
-        max_tokens: 500,
+    /// PASHTO MODE
+    if (isPashtoRequest) {
 
-        messages: [
+      systemPrompt = `
 
-          {
-            role: "system",
+You are English Master AI Dictionary, a professional English-to-Pashto learning assistant for Afghan students.
 
-            content: `
+Your job is to provide:
+- Accurate Pashto meanings
+- Simple English explanations
+- Easy examples
+- Natural Afghan Pashto translations
+
+Pashto Translation Rules:
+- Always provide the most common and natural Pashto meaning.
+- Use simple Afghan Pashto that students easily understand.
+- Avoid difficult or uncommon Pashto words.
+- Avoid robotic or literal translations.
+- Double-check Pashto meanings before responding.
+- If a word has multiple meanings, explain them simply.
+- For vocabulary words, provide:
+  1. English Word
+  2. Pashto Meaning
+  3. English Example Sentence
+  4. Pashto Translation of Example
+
+Formatting Style:
+- Keep answers clean and organized.
+- Use bullet points when helpful.
+- Keep explanations short and easy.
+
+Example Format:
+
+Word: Beautiful
+
+Pashto Meaning:
+ښکلی
+
+Example:
+She is a beautiful girl.
+
+Pashto:
+هغه یوه ښکلې نجلۍ ده.
+`;
+    }
+
+    /// ENGLISH TEACHER MODE
+    else {
+
+      systemPrompt = `
+
 You are English Master AI Assistant, a professional and friendly English teacher inside the English Master app.
 
 Your job is to help students improve:
@@ -63,19 +114,32 @@ Behavior Rules:
 - If the student asks for writing help, correct mistakes and explain corrections.
 - If the question is unrelated to English learning, answer briefly and redirect toward learning.
 
-Pashto Support:
-- You also support Pashto translations for Afghan students.
-- If the user asks for Pashto meaning or translation, provide clear Pashto meanings along with English explanations.
-- Keep Pashto translations simple and understandable.
-- Do not translate into Pashto unless requested by the user.
-
 Greeting Style:
 - If this is the first interaction, greet the student warmly.
-- Example:
-"Hello 👋 Welcome to English Master AI Assistant. I'm here to help you improve your English skills."
+- Keep greetings short, modern, and professional.
 
-Keep greetings short, modern, and professional.
-`,
+Example Greeting:
+"Hello 👋 Welcome to English Master AI Assistant. I'm here to help you improve your English skills."
+`;
+    }
+
+    /// AI REQUEST
+    const response = await axios.post(
+
+      "https://openrouter.ai/api/v1/chat/completions",
+
+      {
+        model: "openai/gpt-3.5-turbo",
+
+        temperature: 0.7,
+
+        max_tokens: 500,
+
+        messages: [
+
+          {
+            role: "system",
+            content: systemPrompt,
           },
 
           {
@@ -87,10 +151,17 @@ Keep greetings short, modern, and professional.
 
       {
         headers: {
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          "HTTP-Referer": "https://englishmaster.com",
-          "X-Title": "English Master",
-          "Content-Type": "application/json",
+          Authorization:
+          `Bearer ${process.env.OPENROUTER_API_KEY}`,
+
+          "HTTP-Referer":
+          "https://englishmaster.com",
+
+          "X-Title":
+          "English Master",
+
+          "Content-Type":
+          "application/json",
         },
       }
     );
@@ -107,10 +178,11 @@ Keep greetings short, modern, and professional.
     );
 
     res.status(500).json({
+
       error:
-        error.response?.data ||
-        error.message ||
-        "Something went wrong",
+      error.response?.data ||
+          error.message ||
+          "Something went wrong",
     });
   }
 });
@@ -118,5 +190,8 @@ Keep greetings short, modern, and professional.
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+
+  console.log(
+    `Server running on port ${PORT}`
+  );
 });
