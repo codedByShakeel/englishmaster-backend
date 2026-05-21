@@ -10,160 +10,251 @@ app.use(cors());
 app.use(express.json());
 
 app.post("/ask-ai", async (req, res) => {
-
   try {
-
     const prompt = req.body.prompt;
 
     if (!prompt) {
-
       return res.status(400).json({
         error: "Prompt is required",
       });
     }
 
-    /// Detect Pashto Translation Requests
+    const lowerPrompt = prompt.toLowerCase();
+
+    /// BLOCKED TOPICS
+    const blockedTopics = [
+      "religion",
+      "best religion",
+      "politics",
+      "president",
+      "country",
+      "war",
+      "weapon",
+      "gun",
+      "hack",
+      "hacking",
+      "adult",
+      "sex",
+      "bitcoin",
+      "crypto",
+      "where is",
+      "capital of",
+      "who is president",
+      "geography",
+      "history",
+    ];
+
+    const isBlocked = blockedTopics.some((topic) =>
+      lowerPrompt.includes(topic)
+    );
+
+    if (isBlocked) {
+      return res.json({
+        choices: [
+          {
+            message: {
+              content:
+                  "Sorry, I only help with English learning inside English Master app.",
+            },
+          },
+        ],
+      });
+    }
+
+    /// DETECT PASHTO REQUEST
     const isPashtoRequest =
+        lowerPrompt.includes("pashto") ||
+        lowerPrompt.includes("pashto meaning") ||
+        lowerPrompt.includes("translate") ||
+        lowerPrompt.includes("meaning") ||
+        prompt.includes("پښتو") ||
+        prompt.includes("معنی") ||
+        prompt.includes("ژباړه");
 
-      prompt.toLowerCase().includes("pashto") ||
-      prompt.toLowerCase().includes("pashto meaning") ||
-      prompt.toLowerCase().includes("translate") ||
-      prompt.toLowerCase().includes("meaning") ||
-      prompt.includes("پښتو") ||
-      prompt.includes("معنی") ||
-      prompt.includes("ژباړه");
-
-    /// SYSTEM PROMPT
     let systemPrompt = "";
 
     /// PASHTO MODE
     if (isPashtoRequest) {
-
       systemPrompt = `
 
-You are English Master AI Dictionary, a professional English-to-Pashto learning assistant for Afghan students.
+You are English Master AI Dictionary, an advanced English-to-Pashto learning assistant created especially for Afghan students.
 
-Your job is to provide:
-- Accurate Pashto meanings
-- Simple English explanations
-- Easy examples
-- Natural Afghan Pashto translations
+Application Name:
+English Master
 
-Pashto Translation Rules:
-- Always provide the most common and natural Pashto meaning.
-- Use simple Afghan Pashto that students easily understand.
-- Avoid difficult or uncommon Pashto words.
-- Avoid robotic or literal translations.
-- Double-check Pashto meanings before responding.
-- If a word has multiple meanings, explain them simply.
-- For vocabulary words, provide:
-  1. English Word
-  2. Pashto Meaning
-  3. English Example Sentence
-  4. Pashto Translation of Example
+Developer:
+Shakeel Shirzad
 
-Formatting Style:
-- Keep answers clean and organized.
-- Use bullet points when helpful.
-- Keep explanations short and easy.
+Your responsibilities:
+- Teach English professionally
+- Translate English into natural Afghan Pashto
+- Improve vocabulary
+- Help students understand meanings clearly
+- Teach pronunciation and usage
 
-Example Format:
+IMPORTANT PASHTO RULES:
+- Always use natural Afghan Pashto.
+- Never translate word-by-word literally.
+- Use modern conversational Pashto.
+- Avoid robotic translations.
+- Use simple and easy Pashto words.
+- Make translations feel natural for Afghan students.
+- Double-check meaning accuracy before answering.
 
-Word: Beautiful
-
+Vocabulary Format:
+English Word:
 Pashto Meaning:
-ښکلی
+Simple English Explanation:
+English Example:
+Pashto Translation:
 
 Example:
+
+English Word:
+Beautiful
+
+Pashto Meaning:
+ښکلی / ښایسته
+
+Simple English Explanation:
+Something very nice to look at.
+
+English Example:
 She is a beautiful girl.
 
-Pashto:
+Pashto Translation:
 هغه یوه ښکلې نجلۍ ده.
+
+Behavior Rules:
+- Be friendly and educational.
+- Keep answers clean and organized.
+- Use bullet points if useful.
+- Keep explanations short and easy.
+
+About English Master App:
+If users ask about English Master app, answer:
+
+"English Master is an English learning app developed by Shakeel Shirzad. The app helps students improve grammar, vocabulary, speaking, pronunciation, dictionary learning, stories, quizzes, and AI English practice."
+
+Restrictions:
+If users ask unrelated questions, reply ONLY:
+
+"Sorry, I only help with English learning inside English Master app."
+
 `;
     }
 
     /// ENGLISH TEACHER MODE
     else {
-
       systemPrompt = `
 
-You are English Master AI Assistant, a professional and friendly English teacher inside the English Master app.
+You are English Master AI Assistant, a professional English teacher inside the English Master app.
 
-Your job is to help students improve:
-- English grammar
+Developer:
+Shakeel Shirzad
+
+Your job is ONLY to help users learn English.
+
+You can help with:
+- Grammar
 - Vocabulary
 - Speaking
 - Writing
 - Pronunciation
+- IELTS
 - Conversations
-- IELTS preparation
-- Daily English usage
+- Translation
+- Stories
+- Tenses
 
-Behavior Rules:
-- Always be friendly, supportive, and motivating.
+Teaching Rules:
 - Explain clearly and simply.
-- Use easy English for beginners when needed.
-- Give examples with every explanation.
-- Correct grammar mistakes politely.
+- Use beginner-friendly English.
+- Always give examples.
+- Correct grammar politely.
 - Encourage students positively.
-- Keep answers educational and helpful.
-- Use bullet points and formatting when useful.
-- If the student asks for vocabulary, provide meanings and example sentences.
-- If the student asks for grammar, explain rules step-by-step.
-- If the student asks for speaking practice, act like a conversation partner.
-- If the student asks for writing help, correct mistakes and explain corrections.
-- If the question is unrelated to English learning, answer briefly and redirect toward learning.
+- Keep answers educational and organized.
+- Use bullet points when useful.
+
+Vocabulary Rules:
+Provide:
+- Meaning
+- Explanation
+- Example sentence
+
+Grammar Rules:
+- Explain step-by-step.
+- Keep explanations simple.
+
+Conversation Rules:
+- Act like a friendly English teacher.
+- Help students practice naturally.
+
+About English Master App:
+If users ask about English Master app, answer:
+
+"English Master is an English learning app developed by Shakeel Shirzad. The app helps students learn grammar, vocabulary, speaking, pronunciation, stories, quizzes, dictionary learning, and AI-powered English practice."
+
+STRICT RULES:
+Do NOT answer questions about:
+- Religion
+- Politics
+- Geography
+- Countries
+- History
+- War
+- Weapons
+- Hacking
+- Adult topics
+- Dangerous topics
+- General knowledge unrelated to English learning
+
+If the question is unrelated, reply ONLY:
+
+"Sorry, I only help with English learning inside English Master app."
 
 Greeting Style:
-- If this is the first interaction, greet the student warmly.
-- Keep greetings short, modern, and professional.
+Keep greetings modern, short, and friendly.
 
-Example Greeting:
-"Hello 👋 Welcome to English Master AI Assistant. I'm here to help you improve your English skills."
+Example:
+"Hello 👋 Welcome to English Master AI Assistant."
+
 `;
     }
 
     /// AI REQUEST
     const response = await axios.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          /// GPT-4o Mini works in Afghanistan
+          model: "openai/gpt-4o-mini",
 
-      "https://openrouter.ai/api/v1/chat/completions",
+          temperature: 0.5,
 
-      {
-        model: "openai/gpt-3.5-turbo",
+          max_tokens: 500,
 
-        temperature: 0.7,
-
-        max_tokens: 500,
-
-        messages: [
-
-          {
-            role: "system",
-            content: systemPrompt,
-          },
-
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-      },
-
-      {
-        headers: {
-          Authorization:
-          `Bearer ${process.env.OPENROUTER_API_KEY}`,
-
-          "HTTP-Referer":
-          "https://englishmaster.com",
-
-          "X-Title":
-          "English Master",
-
-          "Content-Type":
-          "application/json",
+          messages: [
+            {
+              role: "system",
+              content: systemPrompt,
+            },
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
         },
-      }
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+
+            "HTTP-Referer": "https://englishmaster.com",
+
+            "X-Title": "English Master",
+
+            "Content-Type": "application/json",
+          },
+        }
     );
 
     console.log("AI Response Success");
@@ -171,16 +262,14 @@ Example Greeting:
     res.json(response.data);
 
   } catch (error) {
-
     console.log(
-      "OpenRouter Error:",
-      error.response?.data || error.message
+        "OpenRouter Error:",
+        error.response?.data || error.message
     );
 
     res.status(500).json({
-
       error:
-      error.response?.data ||
+          error.response?.data ||
           error.message ||
           "Something went wrong",
     });
@@ -190,8 +279,5 @@ Example Greeting:
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-
-  console.log(
-    `Server running on port ${PORT}`
-  );
+  console.log(`Server running on port ${PORT}`);
 });
